@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- ENUMS ---
+
+enum UserRole {
+  CUSTOMER
+  ARTISAN
+  ADMIN
+}
+
+enum ArtisanStatus {
+  PENDING // Awaiting Admin approval
+  APPROVED // Can sell
+  REJECTED // Cannot sell
+}
+
+enum OrderStatus {
+  AWAITING_PAYMENT
+  PAYMENT_APPROVED
+  IN_PREPARATION
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum TransactionStatus {
+  PROCESSING // Payment initiated
+  PAID // Customer has paid (money is with the platform)
+  SETTLED // Platform has paid out to the artisan
+  FAILED // Payment failed
+  REFUNDED // Payment returned to the customer
+}
+
+// --- MODELS ---
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  active    Boolean  @default(true)
+
+  artisanProfile Artisan?
+  orders         Order[]
+  reviews        Review[]
+  Address        UserAddress[]
+}
+
+model Artisan {
+  id                String        @id @default(cuid())
+  storeName         String
+  storeDescription  String?
+  identification    String        @unique
+  proofOfAddressUrl String?
+  status            ArtisanStatus @default(PENDING)
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  products    Product[]
+  BankAccount BankAccount[]
+}
+
+model Category {
+  id   String @id @default(cuid())
+  name String @unique
+
+  products CategoriesProducts[]
+}
+
+model CategoriesProducts {
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  @@id([productId, categoryId])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  price       Decimal  @db.Decimal(10, 2)
+  stock       Int
+  imageUrls   String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  artisanId String
+  artisan   Artisan @relation(fields: [artisanId], references: [id])
+
+  categories CategoriesProducts[]
+
+  orderItems OrderItem[]
+  reviews    Review[]
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  status       OrderStatus @default(AWAITING_PAYMENT)
+  createdAt    DateTime    @default(now())
+  shippingFee  Decimal     @db.Decimal(10, 2)
+  totalAmount  Decimal     @db.Decimal(10, 2)
+  trackingCode String?
+
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id])
+
+  shippingAddress OrderShippingAddress?
+
+  items       OrderItem[]
+  transaction Transaction?
+}
+
+model OrderShippingAddress {
+  id         String  @id @default(cuid())
+  street     String
+  number     String
+  complement String?
+  zipCode    String
+  city       String
+  state      String
+  country    String  @default("BR")
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  artisanId String
+}
+
+model Transaction {
+  id            String            @id @default(cuid())
+  grossAmount   Decimal           @db.Decimal(10, 2)
+  platformFee   Decimal           @db.Decimal(10, 2)
+  artisanPayout Decimal           @db.Decimal(10, 2)
+  status        TransactionStatus @default(PROCESSING)
+  paymentMethod String?
+  gatewayId     String?           @unique
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model BankAccount {
+  id            String @id @default(cuid())
+  bankName      String
+  agency        String
+  accountNumber String
+  accountType   String
+  holderName    String
+  holderDoc     String
+
+  artisanId String
+  artisan   Artisan @relation(fields: [artisanId], references: [id])
+}
+
+model UserAddress {
+  id         String  @id @default(cuid())
+  street     String
+  number     String
+  complement String?
+  zipCode    String
+  city       String
+  state      String
+  country    String  @default("BR")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
