@@ -30,6 +30,13 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
 enum TransactionStatus {
   PROCESSING // Payment initiated
   PAID // Customer has paid (money is with the platform)
@@ -88,14 +95,20 @@ model CategoriesProducts {
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  title       String
-  description String
-  price       Decimal  @db.Decimal(10, 2)
-  stock       Int
-  imageUrls   String[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String        @id @default(cuid())
+  title          String
+  description    String
+  price          Decimal       @db.Decimal(10, 2)
+  compareAtPrice Decimal?      @db.Decimal(10, 2)
+  weight         Float? 
+  material       String?
+  stock          Int
+  status         ProductStatus @default(DRAFT)
+  imageUrls      String[]
+  avgRating   Decimal  @default(0) @db.Decimal(3, 2) 
+  reviewCount Int      @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   artisanId String
   artisan   Artisan @relation(fields: [artisanId], references: [id])
