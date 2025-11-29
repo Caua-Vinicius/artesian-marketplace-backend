@@ -26,6 +26,7 @@ import { RequireArtisanStatus } from 'src/common/decorators/artisan-status.decor
 import { UpdateProductStatusDto } from './dto/update-product-status.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto } from './dto/update-product-stock.dto';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard, ArtisanStatusGuard)
 @Controller('products')
@@ -72,6 +73,7 @@ export class ProductsController {
     );
   }
 
+  @Public()
   @Get()
   async getProducts(): Promise<Product[]> {
     return await this.productsService.getProducts();
@@ -83,6 +85,7 @@ export class ProductsController {
     return await this.productsService.getArtisanProducts(user.id);
   }
 
+  @Public()
   @Get(':productId')
   async getProductById(
     @Param('productId') productId: string,
@@ -159,6 +162,19 @@ export class ProductsController {
       user.id,
       productId,
       categoryId,
+    );
+  }
+
+  @Put(':productId/status')
+  async updateProducStatus(
+    @Param('productId') productId: string,
+    @GetUser() user: User,
+    @Body() updateProductStatusDto: UpdateProductStatusDto,
+  ) {
+    return await this.productsService.updateProductStatus(
+      user.id,
+      productId,
+      updateProductStatusDto,
     );
   }
 }
