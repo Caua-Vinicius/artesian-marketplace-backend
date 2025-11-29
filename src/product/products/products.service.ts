@@ -118,11 +118,28 @@ export class ProductsService {
   }
 
   async getProducts(): Promise<Product[]> {
-    return await this.prisma.product.findMany({
+    const products = await this.prisma.product.findMany({
       where: {
         status: 'ACTIVE',
       },
+      include: {
+        categories: {
+          select: {
+            category: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
     });
+
+    return products.map((product) => ({
+      ...product,
+      categories: product.categories.map((c) => c.category),
+    }));
   }
 
   async getProductById(productId: string): Promise<Product> {
