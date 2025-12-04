@@ -12,6 +12,8 @@ async function bootstrap() {
     }),
   );
 
+  app.enableCors();
+
   app.useGlobalFilters(new PrismaExceptionFilter());
 
   await app.listen(3000);
