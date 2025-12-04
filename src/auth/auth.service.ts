@@ -1,9 +1,7 @@
 import {
   ConflictException,
-  Get,
   Injectable,
   UnauthorizedException,
-  UseGuards,
 } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { RegisterUserDto } from './dto/register-user.dto';
@@ -11,9 +9,6 @@ import { SafeUser } from './types/safe-user.type';
 import * as bcrypt from 'bcrypt';
 import { LoginUserDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
-import { JwtAuthGuard } from 'src/common/guards/auth.guard';
-import { GetUser } from 'src/common/decorators/get-user.decorator';
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -79,11 +74,5 @@ export class AuthService {
     return {
       accessToken: accessToken,
     };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('me')
-  getProfile(@GetUser() user: SafeUser) {
-    return user;
   }
 }
