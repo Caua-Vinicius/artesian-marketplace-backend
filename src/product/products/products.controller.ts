@@ -9,6 +9,7 @@ import {
   ParseFilePipe,
   Post,
   Put,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -27,6 +28,8 @@ import { UpdateProductStatusDto } from './dto/update-product-status.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateStockDto } from './dto/update-product-stock.dto';
 import { Public } from 'src/common/decorators/public.decorator';
+import { ProductFilterDto } from './dto/request-filter/get-products-request.filter.dto';
+import { PaginatedProductsResultDto } from './dto/paginated-products-response.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard, ArtisanStatusGuard)
 @Controller('products')
@@ -75,8 +78,10 @@ export class ProductsController {
 
   @Public()
   @Get()
-  async getProducts(): Promise<Product[]> {
-    return await this.productsService.getProducts();
+  async getProducts(
+    @Query() params: ProductFilterDto,
+  ): Promise<PaginatedProductsResultDto> {
+    return await this.productsService.getProducts(params);
   }
 
   @Get('my-products')
