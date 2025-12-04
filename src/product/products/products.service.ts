@@ -6,13 +6,15 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
-import { Product } from '@prisma/client';
+import { Prisma, Product, ProductStatus } from '@prisma/client';
 import { UpdateStockDto } from './dto/update-product-stock.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { S3Service } from 'src/s3/s3.service';
 import { v4 as uuidv4 } from 'uuid';
 import { extname } from 'path';
 import { UpdateProductStatusDto } from './dto/update-product-status.dto';
+import { ProductFilterDto } from './dto/request-filter/get-products-request.filter.dto';
+import { PaginatedProductsResultDto } from './dto/paginated-products-response.dto';
 
 @Injectable()
 export class ProductsService {
@@ -117,12 +119,80 @@ export class ProductsService {
     });
   }
 
-  async getProducts(): Promise<Product[]> {
-    return await this.prisma.product.findMany({
-      where: {
-        status: 'ACTIVE',
+  async getProducts(
+    params: ProductFilterDto,
+  ): Promise<Promise<PaginatedProductsResultDto>> {
+    const {
+      cursor,
+      take,
+      search,
+      minPrice,
+      maxPrice,
+      material,
+      minStock,
+      minRating,
+    } = params;
+
+    const where: Prisma.ProductWhereInput = {
+      status: ProductStatus.ACTIVE,
+
+      material: material
+        ? { equals: material, mode: 'insensitive' }
+        : undefined,
+      stock: minStock !== undefined ? { gte: minStock } : undefined,
+      avgRating: minRating !== undefined ? { gte: minRating } : undefined,
+
+      price: {
+        gte: minPrice,
+        lte: maxPrice,
+      },
+
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
+    };
+
+    const products = await this.prisma.product.findMany({
+      take,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: {
+        categories: {
+          select: {
+            category: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
+
+    const formattedProducts = products.map((product) => ({
+      ...product,
+      categories: product.categories.map((c) => c.category),
+    }));
+
+    let nextCursor: string | null = null;
+
+    if (products.length > 0) {
+      nextCursor = products[products.length - 1].id;
+    }
+
+    return {
+      data: formattedProducts,
+      meta: {
+        nextCursor,
+        hasNextPage: products.length === take,
+      },
+    };
   }
 
   async getProductById(productId: string): Promise<Product> {

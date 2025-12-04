@@ -15,6 +15,7 @@ import { JwtAuthGuard } from 'src/common/guards/auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.ARTISAN) // for now admin and artisan can manage categories
@@ -27,12 +28,13 @@ export class CategoriesController {
     return await this.categoriesService.createCategory(createCategoryDto);
   }
 
-  @Roles(UserRole.ADMIN, UserRole.ARTISAN, UserRole.CUSTOMER)
+  @Public()
   @Get()
   async findAll() {
     return await this.categoriesService.findCategories();
   }
 
+  @Public()
   @Roles(UserRole.ADMIN, UserRole.ARTISAN, UserRole.CUSTOMER)
   @Get(':id')
   async findOne(@Param('id') id: string) {

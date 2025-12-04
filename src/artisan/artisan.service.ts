@@ -1,9 +1,14 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { CreateArtisanDto } from './dto/create-artisan.dto';
 import { Artisan, ArtisanStatus, UserRole } from '@prisma/client';
 import { UserService } from 'src/user/user.service';
 import { FullUser } from 'src/user/types/full-user.type';
 import { PrismaService } from 'prisma/prisma.service';
+import { UpdateArtisanDto } from './dto/update-artisan.dto';
 
 @Injectable()
 export class ArtisanService {
@@ -37,6 +42,33 @@ export class ArtisanService {
           },
         },
       },
+    });
+  }
+
+  async updateArtisan(
+    artisanId: string,
+    userId: string,
+    updateArtisanDto: UpdateArtisanDto,
+  ): Promise<Artisan> {
+    const artisan = await this.prisma.artisan.findFirstOrThrow({
+      where: {
+        id: artisanId,
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    if (artisan.userId !== userId) {
+      throw new ForbiddenException(
+        'Você não tem permissão para editar este perfil.',
+      );
+    }
+    return await this.prisma.artisan.update({
+      where: {
+        userId,
+      },
+      data: updateArtisanDto,
     });
   }
 

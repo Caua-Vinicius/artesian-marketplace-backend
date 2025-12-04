@@ -12,16 +12,26 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { OrderService } from './order.service';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { User, UserRole } from '@prisma/client';
+import { ArtisanStatus, Order, User, UserRole } from '@prisma/client';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { ArtisanStatusGuard } from 'src/common/guards/artisan-status.guard';
+import { RequireArtisanStatus } from 'src/common/decorators/artisan-status.decorator';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, ArtisanStatusGuard)
 @Roles(UserRole.CUSTOMER)
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
+  // Artisan routes
+
+  @Get('sales')
+  @Roles(UserRole.ARTISAN)
+  @RequireArtisanStatus(ArtisanStatus.APPROVED)
+  async getSales(@GetUser() user: User): Promise<Order[]> {
+    return await this.orderService.findAllArtisanOrders(user.id);
+  }
   // --- CLIENT ROUTES ---
 
   @Post()
